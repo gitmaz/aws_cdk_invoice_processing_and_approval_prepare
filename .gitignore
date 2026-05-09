@@ -1,0 +1,29 @@
+# Node / npm (patterns aligned with maz/.gitignore)
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+**/.vite/
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+**/.pnpm-store/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Temp / cache / logs
+**/.cache/
+**/tmp/
+**/temp/
+**/*.tmp
+**/*.temp
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
