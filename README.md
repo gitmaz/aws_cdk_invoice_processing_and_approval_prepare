@@ -57,14 +57,14 @@ Same Lambda handlers (**validate → notify-human → finalize**), but **`WAIT_F
 | **`runInvoiceWorkflow(input)`** | Runs validate → notify (with a random **`taskToken`**) → **`await`**s until **`sendTaskSuccess`** resolves that wait → runs **`finalize-human-approve`** or **`finalize-human-reject`**. |
 | **`sendTaskSuccess(taskToken, output)`** | Replace **`SendTaskSuccess`** when integrating: **`output`** is the same JSON **`public-api`** would send (object or JSON string): **`{ "action": "APPROVE" \| "REJECT", "invoiceId", … }`**. |
 
-This module **does not import** **`orchestrator.ts`** and is **not** hooked into **`src/server.ts`** by default (parallel reference only).
+**How this app uses orchestration today:** **`npm run start`** loads **`src/server.ts`**, which registers mocks and wires **`src/orchestrator.ts`** — that path mocks **`@aws-sdk/client-sfn`** (**`StartExecution`** / **`SendTaskSuccess`**) with **aws-sdk-client-mock**, matching how the real Lambdas call Step Functions.
 
-**How to use it**
+**What `orchestrator-using-promise.ts` is for:** it is **not** used by the running app. It is **reference code** only: the same **validate → notify → human callback → finalize** flow implemented **without** the AWS SDK for Step Functions (Promise + **`Map`** instead). It does **not** import **`orchestrator.ts`** — the two files are parallel illustrations, not a dependency chain.
 
-1. **Script / REPL** — after **`MOCK_TEXTRACT`** and DynamoDB/S3 mocks are active (same **`prepare-env`** + **`registerSdkMocks`** pattern as the HTTP server), **`await runInvoiceWorkflow({ bucket, key, invoiceId, stage })`** in one async flow and call **`sendTaskSuccess(token, payload)`** from another tick when ready (token string is the one **`notify-human`** logged via DynamoDB **`taskToken`**, or pass through from **`runInvoiceWorkflow`** if you wrap it to expose the token).
-2. **HTTP server variant** — replace **`upload-complete`’s** **`StartExecution`** path with **`runInvoiceWorkflow`** (or spawn it **`void …`** like **`StartExecution`** does today), and in **`POST /public/decision`** call **`sendTaskSuccess(taskTokenFromDb, body)`** instead of **`sfn.send(SendTaskSuccessCommand)`**. Remove **`InvoiceOrchestrator.wire()`** from **`setup-mocks`** if nothing else should mock SFN.
+**How to use the Promise variant (optional)**
 
-Until you wire it, treat **`orchestrator-using-promise.ts`** as documentation + copy-paste starting point for experiments.
+1. **Script / REPL** — after **`MOCK_TEXTRACT`** and DynamoDB/S3 mocks are active (same **`prepare-env`** + **`registerSdkMocks`** pattern as the HTTP server), **`await runInvoiceWorkflow({ bucket, key, invoiceId, stage })`** in one async flow and call **`sendTaskSuccess(token, payload)`** from another tick when ready (token string is the one **`notify-human`** stored in DynamoDB as **`taskToken`**, unless you wrap **`runInvoiceWorkflow`** to expose it).
+2. **HTTP server variant** — you would replace **`upload-complete`’s** **`StartExecution`** path with **`runInvoiceWorkflow`** (or spawn it **`void …`** like **`StartExecution`** does today), and in **`POST /public/decision`** call **`sendTaskSuccess(taskTokenFromDb, body)`** instead of **`sfn.send(SendTaskSuccessCommand)`**, and remove **`InvoiceOrchestrator.wire()`** from **`setup-mocks`** if nothing else should mock SFN.
 
 ---
 
